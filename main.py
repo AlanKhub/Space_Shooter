@@ -86,6 +86,11 @@ screen_width = background.get_width()
 screen = pygame.display.set_mode((length, width))
 super_distance = 0
 score = 0
+level = 30
+enemies_num = 10
+enemies_present = 0
+lives = 3
+time_interval = 20
 player_img = pygame.image.load("PNG/playerShip2_red.png")
 player_img_master = pygame.image.load("PNG/playerShip2_red.png").convert()
 enemy_img = [pygame.image.load("PNG/Enemies/enemyBlack1.png"), pygame.image.load("PNG/Enemies/enemyBlue1.png"), pygame.image.load("PNG/Enemies/enemyGreen1.png"), pygame.image.load("PNG/Enemies/enemyRed1.png")]
@@ -96,9 +101,16 @@ screen = pygame.display.set_mode((length, width))
 cond = 1
 #bullet.rect.y = 500000000
 #bullet.rect.x = 500000000
+time_start = time.time()
 while 1:
     clock.tick(144)
     if cond == 1:
+        for enemy in enemies:
+            enemy.vel = 4 + level//10
+        enemies_num = 10 + 2*(level - 1)
+        time_interval = 5 - level/2
+        if time_interval < 0:
+            time_interval = 0.5
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 break
@@ -106,9 +118,20 @@ while 1:
                 if event.key == pygame.K_SPACE:
                     if len(bullets) < 3:
                         bullets.append(Projectile(round(player.x + player.width // 2 - 5), round(player.y + player.height // 2 - 50), 9, 37))
-                if event.key == pygame.K_z:
-                    if len(enemies) < 10000:
-                        enemies.append(Enemy(random.randint(50, 1638), 5, 93, 84, enemy_img[random.randint(0, len(enemy_img)-1)]))
+                #if event.key == pygame.K_z:
+                #    if len(enemies) < 10000:
+                #        enemies.append(Enemy(random.randint(50, 1638), 5, 93, 84, enemy_img[random.randint(0, len(enemy_img)-1)]))
+        if time.time() - time_start >= time_interval:
+            time_start = time.time()
+            if enemies_present < enemies_num:
+                enemies.append(
+                    Enemy(random.randint(50, 1638), 5, 93, 84, enemy_img[random.randint(0, len(enemy_img) - 1)]))
+                enemies_present += 1
+                print(enemies_present,enemies_num)
+            if len(enemies) == 0 and enemies_present == enemies_num:
+                level+=1
+                print("level " + str(level) + " began!")
+                enemies_present = 0
 
         keys = pygame.key.get_pressed()
         if keys[pygame.K_LEFT] and player.x > player.vel:
