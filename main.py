@@ -29,7 +29,7 @@ class Player(object):
         self.walkCount = 0
         self.jumpCount = 10
         self.standing = True
-
+        self.lives = 3
     def draw(self, win):
         if self.walkCount + 1 >= 27:
             self.walkCount = 0
@@ -48,14 +48,16 @@ class Projectile(object):
         screen.blit(bullet_img, (self.x, self.y))
 
 class Enemy(object):
-    def __init__(self, x, y, width, height, enemyimg):
+    def __init__(self, x, y, width, height):
         self.x = x
         self.y = y
         self.width = width
         self.height = height
         self.vel = 4
-        self.enemyimg = enemyimg
-
+        self.lives = 1 + level//10
+        if self.lives > 5:
+            self.lives = 5
+        self.enemyimg = enemy_img[self.lives - 1]
     def draw(self, win):
         screen.blit(self.enemyimg, (self.x, self.y))
 
@@ -70,9 +72,14 @@ def redrawGameWindow(bg_y):
     for enemy in enemies:
         enemy.draw(screen)
     text_screen = font.render(text + str(score), True, (0, 0, 0))
+    lives_text_screen = font.render("Lives: " + "♥"*player.lives, True, (255, 0, 0))
+    level_text_screen = font.render("level: " + str(level), True, (0, 0, 0))
     screen.blit(text_screen, (0, 0))
+    screen.blit(lives_text_screen, (0, 30))
+    screen.blit(level_text_screen, (0, 60))
     pygame.display.update()
 
+ignore_list = []
 
 pygame.init() # запуск
 player_ydir = 0
@@ -86,14 +93,13 @@ screen_width = background.get_width()
 screen = pygame.display.set_mode((length, width))
 super_distance = 0
 score = 0
-level = 30
+level = 100
 enemies_num = 10
 enemies_present = 0
-lives = 3
 time_interval = 20
 player_img = pygame.image.load("PNG/playerShip2_red.png")
 player_img_master = pygame.image.load("PNG/playerShip2_red.png").convert()
-enemy_img = [pygame.image.load("PNG/Enemies/enemyBlack1.png"), pygame.image.load("PNG/Enemies/enemyBlue1.png"), pygame.image.load("PNG/Enemies/enemyGreen1.png"), pygame.image.load("PNG/Enemies/enemyRed1.png")]
+enemy_img = [pygame.image.load("PNG/Enemies/enemyBlack1.png"), pygame.image.load("PNG/Enemies/enemyRed1.png"), pygame.image.load("PNG/Enemies/enemyYellow1.png"), pygame.image.load("PNG/Enemies/enemyGreen1.png"), pygame.image.load("PNG/Enemies/enemyBlue1.png")]
 bullet_img = pygame.image.load("PNG/Lasers/laserRed15.png").convert()
 bullet_img_master = pygame.image.load("PNG/Lasers/laserRed15.png").convert()
 player = Player(844, 470, 112, 75)
@@ -107,7 +113,11 @@ while 1:
     if cond == 1:
         for enemy in enemies:
             enemy.vel = 4 + level//10
+            if enemy.vel > 10:
+                enemy.vel = 10
         enemies_num = 10 + 2*(level - 1)
+        if enemies_num > 100:
+            enemies_num = 100
         time_interval = 5 - level/2
         if time_interval < 0:
             time_interval = 0.5
@@ -125,9 +135,8 @@ while 1:
             time_start = time.time()
             if enemies_present < enemies_num:
                 enemies.append(
-                    Enemy(random.randint(50, 1638), 5, 93, 84, enemy_img[random.randint(0, len(enemy_img) - 1)]))
+                    Enemy(random.randint(50, 1638), 5, 93, 84))
                 enemies_present += 1
-                print(enemies_present,enemies_num)
             if len(enemies) == 0 and enemies_present == enemies_num:
                 level+=1
                 print("level " + str(level) + " began!")
@@ -181,13 +190,42 @@ while 1:
                 super_distance = math.sqrt(
                     (bullet.x - enemy.x) ** 2 + (bullet.y - enemy.y) ** 2)
                 if super_distance < 90:
-                    score += 1
-                    enemies.pop(enemies.index(enemy))
+                    enemy.lives -= 1
+                    enemy.enemyimg = enemy_img[enemy.lives - 1]
                     bullets.pop(bullets.index(bullet))
+                    if enemy.lives == 0:
+                        score += 1
+                        if enemies.index(enemy) in ignore_list:
+                            ignore_list.pop(id(enemy))
+                        enemies.pop(enemies.index(enemy))
+                    if score%15 == 0 and score != 0:
+                        player.lives += 1
             dead = math.sqrt((player.x - enemy.x) ** 2 + (player.y - enemy.y) ** 2)
             if dead <= 35:
-                background = pygame.image.load("Backgrounds/lost.png")
-                cond = 2
+                player.lives -= 1
+                enemy.lives -= 1
+                if id(enemy) in ignore_list:
+                    player.lives += 1
+                    enemy.lives += 1
+                else:
+                    ignore_list.append(id(enemy))
+                if enemy.lives == 0:
+                    if enemies.index(enemy) in ignore_list:
+                        try:
+                            ignore_list.pop(id(enemy))
+                        except Exception:
+                            pass
+                    enemies.pop(enemies.index(enemy))
+                if player.lives == 0:
+                    background = pygame.image.load("Backgrounds/lost.png")
+                    cond = 2
+            else:
+                if id(enemy) in ignore_list and len(ignore_list):
+                    #print(len(ignore_list))
+                    try:
+                        ignore_list.pop(id(enemy))
+                    except Exception:
+                        pass
         bg_y += 1
         if bg_y >= screen_height:  # дест = destination чтобы фон двигался
             bg_y = 0
