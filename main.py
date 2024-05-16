@@ -42,7 +42,7 @@ class Projectile(object):
         self.y = y
         self.width = width
         self.height = height
-        self.vel = 8
+        self.vel = 10
 
     def draw(self, win):
         screen.blit(bullet_img, (self.x, self.y))
