@@ -404,7 +404,7 @@ while 1:
                 elif upgrade.type == 1:
                     speed_multiplier = 2
                 elif upgrade.type == 2:
-                    player.lives += 3
+                    player.lives += 1
                 elif upgrade.type == 3:
                     shield = True
                     time_shield = time.time()
